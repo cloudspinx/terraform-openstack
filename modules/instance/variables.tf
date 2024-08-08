@@ -2,7 +2,7 @@ variable "instances" {
   description = "List of instance configurations or a single instance configuration."
   type = list(object({
     name                = string
-    image_name          = string
+    image_id            = string
     flavor_id           = string
     key_pair            = string
     network_id          = string
