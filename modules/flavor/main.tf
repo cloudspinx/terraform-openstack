@@ -5,4 +5,5 @@ resource "openstack_compute_flavor_v2" "flavor" {
   vcpus       = each.value.vcpus
   disk        = each.value.disk
   swap        = each.value.swap
+  is_public   = each.value.is_public
 }
