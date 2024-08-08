@@ -3,8 +3,7 @@ resource "openstack_compute_instance_v2" "instance" {
   for_each = { for idx, instance in var.instances : idx => instance }
   
   name            = each.value.name
-  image_id        = data.openstack_images_image_v2.image_id[each.key].id
-  flavor_id       = each.value.flavor_id
+  image_id        = each.value.image_id
   key_pair        = each.value.key_pair
   security_groups = each.value.security_groups
   
