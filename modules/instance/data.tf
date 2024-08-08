@@ -9,11 +9,3 @@ data "openstack_networking_port_v2" "port_by_fixed_ip" {
   fixed_ip = each.value.fixed_ip
   depends_on = [null_resource.wait_for_instances]
 }
-
-# Get image ID
-
-data "openstack_images_image_v2" "image_id" {
-  for_each = { for idx, instance in var.instances : idx => instance }
-  name         = each.value.image_name
-  most_recent  = true
-}
