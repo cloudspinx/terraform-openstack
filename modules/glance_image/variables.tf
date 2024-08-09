@@ -18,25 +18,25 @@ variable "visibility" {
   type        = string
 }
 
-variable "image_url" {
+variable "image_source_url" {
   description = "The URL to download the image from (optional, overrides image_path)"
   type        = string
   default     = ""
 }
 
-variable "image_path" {
+variable "local_file_path" {
   description = "The local file path of the image to upload (optional)"
   type        = string
   default     = ""
 }
 
-variable "min_disk" {
+variable "min_disk_gb" {
   description = "The minimum disk size required to boot the image"
   type        = number
   default     = 0
 }
 
-variable "min_ram" {
+variable "min_ram_mb" {
   description = "The minimum RAM size required to boot the image"
   type        = number
   default     = 0

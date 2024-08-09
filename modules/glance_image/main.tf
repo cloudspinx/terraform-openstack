@@ -4,18 +4,12 @@ resource "openstack_images_image_v2" "image" {
   disk_format       = var.disk_format
   container_format  = var.container_format
   visibility        = var.visibility
-  image_url         = var.image_url
-  image_path        = var.image_path
+  local_file_path   = var.local_file_path
 
   # Optionally, add other properties as needed
-  min_disk          = var.min_disk
-  min_ram           = var.min_ram
+  min_disk_gb       = var.min_disk_gb
+  min_ram_mb        = var.min_ram_mb
   tags              = var.tags
-
-  # Data for the image can be fetched from a URL or a local path
-  # (if both are provided, URL has higher priority)
-  # image_url       = var.image_url
-  # image_path      = var.image_path
 }
 
 
