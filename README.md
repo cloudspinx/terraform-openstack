@@ -2,16 +2,17 @@
 
 Terraform modules which creates the following resources on OpenStack:
 
-- create nova instances
-- Cretae private networks
-- Create security groups
+- Upload image to Glance
+- Create SSH keypair
 - Create nova flavors
-- Create keypair
+- Create private networks
+- Create security groups
+- Create nova instances
 
 
 ## Defining openstack provider
 
-Customize the following configurations to create 
+Customize the following configurations to configure OpenStack provider: 
 
 ```hcl
 # Define required providers
@@ -48,6 +49,7 @@ module "glance_image" {
   #min_ram_mb       = 512
   #tags             = ["tag1", "tag2"]
 }
+```
 
 
 ## Keypair creation
