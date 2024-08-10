@@ -2,12 +2,18 @@
 
 Terraform modules which creates the following resources on OpenStack:
 
-- Upload image to Glance
-- Create SSH keypair
-- Create nova flavors
-- Create private networks
-- Create security groups
-- Create nova instances
+- [x] Upload image to Glance
+- [x] Create SSH keypair
+- [x] Create nova flavors
+- [x] Create private networks
+- [x] Create security groups
+- [x] Create nova instances with attached cinder volumes (optional) and floating ip(optional)
+- [] Dedicated Cinder volumes creation
+- [] Magnum Container Platform
+- [] Octavia Load balancer
+- [] Swift Object Storage
+- [] Manilla Shared Storage
+- [] Trove databases
 
 ## 1. Using plain Terraform / OpenTofu
 
@@ -223,6 +229,71 @@ module "instance" {
 
 ## 2. Using Terragrunt
 
+Sample folder structure
+```bash
+.
+├── flavors
+│   └── terragrunt.hcl
+├── glance_image
+│   └── terragrunt.hcl
+├── instance
+│   └── terragrunt.hcl
+├── keypair
+│   └── terragrunt.hcl
+├── network
+│   └── terragrunt.hcl
+├── security_group
+│   └── terragrunt.hcl
+└── terragrunt.hcl
+```
+
+Saple of the main parent `terragrunt.hcl` file:
+```hcl
+# ---------------------------------------------------------------------------------------------------------------------
+# TERRAGRUNT CONFIGURATION
+# This is the configuration for Terragrunt, a thin wrapper for Terraform and OpenTofu that helps keep your code DRY and
+# maintainable: https://github.com/gruntwork-io/terragrunt
+# 
+locals {
+    # Automatically load environment-level variables
+    #environment_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+    user_name   = "admin"
+    tenant_name = "admin"
+    password    = "password"
+    auth_url    = "http://myauthurl:5000/v3"
+    region      = "RegionOne"
+    user_domain_name = "Default"
+    project_domain_name = "Default"
+}
+
+# Configure Terragrunt to automatically store tfstate files in an S3 bucket
+#remote_state {
+#    backend = "s3"
+#    config = {
+#        encrypt         = true
+#        bucket          = "${get_env("TG_BUCKET_PREFIX", "")}terragrunt-example-tf-state-${local.account_name}-${local.aws_region}"
+#        key             = "${path_relative_to_include()}/tf.tfstate"
+#        region          = local.aws_region
+#        dynamodb_table  = "tf-locks"
+#    }
+#}
+
+# Generate OpenStack provider block
+generate "provider" {
+    path = "provider.tf"
+    if_exists = "overwrite_terragrunt"
+    contents  = <<EOF
+  provider "openstack" {
+    auth_url        = "${local.auth_url}"
+    user_name       = "${local.user_name}"
+    tenant_name     = "${local.tenant_name}"
+    password        = "${local.password}"
+    region          = "${local.region}"
+    }
+    EOF
+}
+```
+
 ### Keypair creation
 - `keypair/terragrunt.hcl`:
 ```hcl
@@ -316,11 +387,11 @@ terraform {
 }
 
 inputs = {
-  network_name          = privatenet
-  subnet_name           = privatenet_subnet
-  subnet_cidr           = 172.34.50.0/24
-  external_network_name = public
-  region                = RegionOne
+  network_name          = "privatenet"
+  subnet_name           = "privatenet_subnet"
+  subnet_cidr           = "172.34.50.0/24"
+  external_network_name = "public"
+  region                = "RegionOne"
   dns_nameservers       = ["8.8.8.8", "8.8.4.4"]
 }
 ```
@@ -359,9 +430,115 @@ inputs = {
     }
   ]
 }
-}
 ```
 
 ### Instance creation
 - `instance/terragrunt.hcl`
+```hcl
+include "root" {
+  path = find_in_parent_folders()
+}
 
+terraform {
+  source = "git::https://github.com/cloudspinx/terraform-openstack.git//modules/instance?ref=main"
+}
+
+# Define dependencies
+## Flavor
+dependency "flavor" {
+  config_path = "../flavors"
+  mock_outputs = {
+    flavor_ids = {
+      "small"  = "temporary-flavor-id-small"
+      "medium" = "temporary-flavor-id-medium"
+    }
+  }
+}
+
+## Security group
+dependency "security_group" {
+  config_path = "../security_group"
+  mock_outputs = {
+    security_group_id = "temporary-security-group-id"
+}
+}
+
+## Keypair
+dependency "keypair" {
+  config_path = "../keypair"
+  mock_outputs = {
+    keypair_name = "temporary-keypair"
+}
+}
+
+## Glance image
+dependency "glance_image" {
+  config_path = "../glance_image"
+  mock_outputs = {
+    keypair_name = "temporary-glance-image-id"
+}
+}
+
+## Network
+dependency "network" {
+  config_path = "../network"
+  mock_outputs = {
+    network_id = "temporary-network-id"
+    subnet_id  = "mock-subnet-id"
+}
+}
+
+dependency "networking" {
+  config_path = "../networking"
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "apply"]
+  mock_outputs = {
+    network_id = "mock-network-id"
+    subnet_id  = "mock-subnet-id"
+  }
+}
+
+inputs = {
+  floating_ip_pool = "public"
+  instances = [
+         {
+          name               = "instancename"
+          image_id           = dependency.glance_image.outputs.image_id
+          #image_id          = "35ee8729-26b7-4e93-b045-71b13c574c73"
+          flavor_id          = dependency.flavor.outputs.flavor_ids["medium"]
+          key_pair           = dependency.keypair.outputs.keypair_name
+          network_id         = dependency.network.outputs.network_id
+	        security_groups    = [dependency.security_group.outputs.security_group_id]
+          fixed_ip           = "172.34.50.11"
+          assign_floating_ip = true
+          userdata_file      = null
+          metadata_role      = "that"
+          volumes            = []
+        }
+        ]
+}
+```
+More options:
+- Using dhcp instead of static IP: `fixed_ip           = null`
+- Not assigning floating ip: ` assign_floating_ip = false`
+- metadata_role role of the instance e.g "Web-server", "Database", "Kubernetes", e.t.c.
+- Attaching volumes example:
+
+```hcl
+# Single volume
+          volumes            = [
+                {
+                    volume_size       = 50
+                }
+          ]
+
+# Two volumes
+          volumes            = [
+                {
+                    volume_size       = 100
+                },
+                {
+                    volume_size       = 30
+                }
+          ]
+# You can attach as many as you want
+```
