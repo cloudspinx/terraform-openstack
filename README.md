@@ -9,8 +9,9 @@ Terraform modules which creates the following resources on OpenStack:
 - Create security groups
 - Create nova instances
 
+## 1. Using plain Terraform / OpenTofu
 
-## Defining openstack provider
+### Defining openstack provider
 
 Customize the following configurations to configure OpenStack provider: 
 
@@ -34,7 +35,7 @@ provider "openstack" {
 }
 ```
 
-## Uploading an image to OpenStack Glance
+### Uploading an image to OpenStack Glance
 
 ```hcl
 module "glance_image" {
@@ -52,7 +53,7 @@ module "glance_image" {
 ```
 
 
-## Keypair creation
+### SSH Keypair creation
 
 ```hcl
 module "keypair" {
@@ -63,7 +64,7 @@ module "keypair" {
 }
 ```
 
-## flavor creation
+### Nova flavor creation
 
 ```hcl
 module "flavors" {
@@ -98,7 +99,7 @@ module "flavors" {
 }
 ```
 
-## Network creation
+### Network creation
 
 ```hcl
 module "network" {
@@ -113,7 +114,7 @@ module "network" {
 }
 ```
 
-## Security group creation
+### Security group creation
 
 ```hcl
 module "security_group" {
@@ -143,7 +144,7 @@ module "security_group" {
 }
 ```
 
-## Instances creation
+### Instances creation
 
 What you can optionally enable:
 - Assigning fixed ip `fixed_ip`, set to `null` to use dhcp
@@ -151,7 +152,7 @@ What you can optionally enable:
 - Using cloud init data, specify path to enable, for example `./cloud-init.yml`, disable with `null`
 - Attaching volumes to the instance. Only use if you have "Cinder" configured. Disable by setting to `[]`
 
-### Single instance without block storage
+#### Single instance without block storage
 
 ```hcl
 module "instance" {
@@ -175,9 +176,10 @@ module "instance" {
         }
         ]
 }
+```
 
-### Creating instance with 
-
+#### Creating instance with Cinder volume
+```hcl
 module "instance" {
   source = "git::https://github.com/cloudspinx/terraform-openstack.git//modules/instance?ref=main"
   
@@ -203,8 +205,9 @@ module "instance" {
         }
         ]
 }
+```
 
-Example on attaching more than one disk volume
+##### Attaching multiple disk volumes
 
 ```hcl
             volumes            = [
@@ -216,3 +219,149 @@ Example on attaching more than one disk volume
                 }
             ]
 ```
+
+
+## 2. Using Terragrunt
+
+### Keypair creation
+- `keypair/terragrunt.hcl`:
+```hcl
+include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "git::https://github.com/cloudspinx/terraform-openstack.git//modules/glance_image?ref=main"
+}
+
+inputs = {
+  keypair_name = "my-keypair"
+  public_key   = file("path/to/your/public/key.pub")
+}
+```
+
+### Glance image uploading
+- `glance_image/terragrunt.hcl`:
+```hcl
+include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "git::https://github.com/cloudspinx/terraform-openstack.git//modules/glance_image?ref=main"
+}
+
+inputs = {
+  image_name        = "my-image"
+  disk_format       = "qcow2"
+  container_format  = "bare"
+  visibility        = "public"
+  local_file_path   = "path/to/local/image.qcow2"
+  #min_disk_gb      = 10
+  #min_ram_mb       = 512
+  #tags             = ["tag1", "tag2"]
+}
+```
+
+### flavor creation
+- `flavors/terragrunt.hcl`
+```hcl
+include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "git::https://github.com/cloudspinx/terraform-openstack.git//modules/flavor?ref=main"
+}
+
+inputs = {
+  flavors = [
+    {
+      name      = "small"
+      ram       = 2048
+      vcpus     = 1
+      disk      = 20
+      swap      = 0
+      is_public = true
+    },
+    {
+      name      = "medium"
+      ram       = 4096
+      vcpus     = 2
+      disk      = 40
+      swap      = 0
+      is_public = true
+    },
+    {
+      name      = "large"
+      ram       = 8192
+      vcpus     = 4
+      disk      = 80
+      swap      = 0
+      is_public = true
+    }
+  ]
+}
+```
+
+### Network creation
+- `network/terragrunt.hcl`
+```hcl
+include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "git::https://github.com/cloudspinx/terraform-openstack.git//modules/network?ref=main"
+}
+
+inputs = {
+  network_name          = privatenet
+  subnet_name           = privatenet_subnet
+  subnet_cidr           = 172.34.50.0/24
+  external_network_name = public
+  region                = RegionOne
+  dns_nameservers       = ["8.8.8.8", "8.8.4.4"]
+}
+```
+
+### Security group creation
+- `security_group/terragrunt.hcl`
+```hcl
+include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "git::https://github.com/cloudspinx/terraform-openstack.git//modules/security_group?ref=main"
+}
+
+inputs = {
+  security_group_name = "test_sg"
+  rules = [
+    {
+      direction = "ingress"
+      ethertype = "IPv4"
+      protocol  = "icmp"
+      remote_ip_prefix = "0.0.0.0/0"
+    },
+    {
+      direction = "ingress"
+      ethertype = "IPv4"
+      protocol  = "tcp"
+      remote_ip_prefix = "0.0.0.0/0"
+    },
+    {
+      direction = "egress"
+      ethertype = "IPv4"
+      protocol  = "tcp"
+      remote_ip_prefix = "0.0.0.0/0"
+    }
+  ]
+}
+}
+```
+
+### Instance creation
+- `instance/terragrunt.hcl`
+
