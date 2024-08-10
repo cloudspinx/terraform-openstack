@@ -1,6 +1,6 @@
 # OpenStack Terraform modules
 
-Terraform modules which creates the following resources on OpenStack:
+Terraform modules which creates the following resources on OpenStack (Work in progress, other modules to be added):
 
 - ✅ Upload image to Glance
 - ✅ Create SSH keypair
