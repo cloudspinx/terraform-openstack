@@ -4,6 +4,7 @@ resource "openstack_compute_instance_v2" "instance" {
   
   name            = each.value.name
   image_id        = each.value.image_id
+  flavor_id       = each.value.flavor_id
   key_pair        = each.value.key_pair
   security_groups = each.value.security_groups
   
