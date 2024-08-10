@@ -2,18 +2,18 @@
 
 Terraform modules which creates the following resources on OpenStack:
 
-- [x] Upload image to Glance
-- [x] Create SSH keypair
-- [x] Create nova flavors
-- [x] Create private networks
-- [x] Create security groups
-- [x] Create nova instances with attached cinder volumes (optional) and floating ip(optional)
-- [] Dedicated Cinder volumes creation
-- [] Magnum Container Platform
-- [] Octavia Load balancer
-- [] Swift Object Storage
-- [] Manilla Shared Storage
-- [] Trove databases
+- ✅ Upload image to Glance
+- ✅ Create SSH keypair
+- ✅ Create nova flavors
+- ✅ Create private networks
+- ✅ Create security groups
+- ✅ Create nova instances with attached cinder volumes (optional) and floating ip(optional)
+- ❌ Dedicated Cinder volumes creation
+- ❌ Magnum Container Platform
+- ❌ Octavia Load balancer
+- ❌ Swift Object Storage
+- ❌ Manilla Shared Storage
+- ❌ Trove databases
 
 ## 1. Using plain Terraform / OpenTofu
 
