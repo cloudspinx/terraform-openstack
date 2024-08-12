@@ -65,9 +65,11 @@ resource "openstack_networking_floatingip_v2" "fip" {
   pool     = var.floating_ip_pool
 }
 
-# Resource to associate floating IPs with ports
-resource "openstack_networking_floatingip_associate_v2" "fip_assoc" {
+# Resource to associate floating IP
+resource "openstack_compute_floatingip_associate_v2" "fip_assoc" {
   for_each = { for idx, instance in var.instances : idx => instance if instance.assign_floating_ip }
   floating_ip = openstack_networking_floatingip_v2.fip[each.key].address
-  port_id     = data.openstack_networking_port_v2.port_by_fixed_ip[each.key].id
+
+  instance_id = openstack_compute_instance_v2.instance[each.key].id
+  fixed_ip    = openstack_compute_instance_v2.instance[each.key].network[0].fixed_ip_v4
 }
