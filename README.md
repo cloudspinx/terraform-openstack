@@ -41,6 +41,15 @@ provider "openstack" {
 }
 ```
 
+For local state file you can use the following:
+```hcl
+terraform {
+  backend "local" {
+    path = "${path.module}/terraform.tfstate"
+  }
+}
+```
+
 ### Uploading an image to OpenStack Glance
 
 ```hcl
@@ -291,6 +300,22 @@ generate "provider" {
     region          = "${local.region}"
     }
     EOF
+}
+```
+
+In each terragrunt file, you can include the following if storing state file locally:
+
+```hcl
+remote_state {
+  backend = "local"
+  config = {
+    path = "${get_parent_terragrunt_dir()}/${path_relative_to_include()}/terraform.tfstate"
+  }
+
+  generate = {
+    path = "backend.tf"
+    if_exists = "overwrite"
+  }
 }
 ```
 
